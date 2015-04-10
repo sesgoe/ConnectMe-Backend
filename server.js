@@ -17,9 +17,14 @@ var counter = 0;
 
 
 var mongoose = require('mongoose');
-mongoose.connect('mongodb://connectme:correcthorsebatterystaple@proximus.modulusmongo.net:27017/nyg3uGyg');
+mongoose.connect('mongodb://connectme:correcthorsebatterystaple@proximus.modulusmongo.net:27017/nyg3uGyg'); //companies
+
+
+//var mongoose2 = require('mongoose');
+//mongoose2.connect('mongodb://connectme:incorrecthorsebatterystaple@proximus.modulusmongo.net:27017/Ahe4wiri'); //users
 
 var Company = require('./app/models/company');
+var User = require('./app/models/user');
 
 //ROUTES FOR API CALLS
 
@@ -80,7 +85,6 @@ router.route('/companies/:company_id')
 				res.send(err);
 				
 			company.name = req.body.name;
-			
 			
 			company.save(function(err) {
 			
@@ -159,7 +163,90 @@ router.route('/companies/:company_id/tags')
 			});
 			
 		});
+	});
+	
+router.route('/users/')
+
+	.get(function(req, res) {
+	
+		User.find(function(err, users) {
+			if(err)
+				res.send(err);
+			
+			res.json(users);
+		});
 	})
+	
+	.post(function(req, res) {
+		
+		var user = new User();
+		user.firstName = req.body.firstName;
+		user.lastName  = req.body.lastName;
+		user.phoneNumber = "";
+		user.email = req.body.email;
+		user.title = "";
+		user.jobSearchType = "";
+		
+		user.save(function(err) {
+			if(err)
+				res.send(err);
+			
+			res.json({ message: 'User created!' });
+		});
+	});
+	
+router.route('/users/:user_id')
+
+    .get(function(req, res) {
+        User.findById(req.params.user_id, function(err, user) {
+            if (err)
+                res.send(err);
+            res.json(user);
+        });
+    })
+	
+	.put(function(req, res) {
+	
+		User.findById(req.params.user_id, function(err, user) {
+		
+			if (err)
+				res.send(err);
+				
+			if(req.body.firstName)
+				user.firstName = req.body.firstName;
+			if(req.body.lastName)
+				user.lastName = req.body.lastName;
+			if(req.body.phoneNumber)
+				user.phoneNumber = req.body.phoneNumber;
+			if(req.body.email)
+				user.email = req.body.email;
+			if(req.body.title)
+				user.title = req.body.title;
+			if(req.body.jobSearchType)
+				user.jobSearchType = req.body.jobSearchType;
+			
+			user.save(function(err) {
+			
+				if(err)
+					res.send(err);
+					
+				res.json({ message: 'User Updated!' });
+			});
+			
+		});
+	})
+	
+	.delete(function(req, res) {
+        User.remove({
+            _id: req.params.user_id
+        }, function(err, user) {
+            if (err)
+                res.send(err);
+
+            res.json({ message: 'Successfully deleted' });
+        });
+    });
+	
 
 app.use('/api', router);
 
