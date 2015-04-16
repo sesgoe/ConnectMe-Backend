@@ -165,7 +165,7 @@ router.route('/companies/:company_id/tags')
 		});
 	});
 	
-router.route('/users/')
+router.route('/users')
 
 	.get(function(req, res) {
 	
@@ -179,19 +179,29 @@ router.route('/users/')
 	
 	.post(function(req, res) {
 		
-		var user = new User();
-		user.firstName = req.body.firstName;
-		user.lastName  = req.body.lastName;
-		user.phoneNumber = "";
-		user.email = req.body.email;
-		user.title = "";
-		user.jobSearchType = "";
-		
-		user.save(function(err) {
+		User.findOne({"email": req.body.email}, function(err, data) {
 			if(err)
 				res.send(err);
-			
-			res.json({ message: 'User created!' });
+			if(data) {
+				res.json({ message: 'User exists'});
+			} else {
+				
+				var user = new User();
+				user.firstName = req.body.firstName;
+				user.lastName  = req.body.lastName;
+				user.phoneNumber = "";
+				user.email = req.body.email;
+				user.title = "";
+				user.jobSearchType = "";
+				
+				user.save(function(err) {
+					if(err)
+						res.send(err);
+					
+					res.json({ message: 'User created!' });
+				});
+				
+			}
 		});
 	});
 	
