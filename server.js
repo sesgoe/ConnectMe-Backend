@@ -25,6 +25,7 @@ mongoose.connect('mongodb://connectme:correcthorsebatterystaple@proximus.modulus
 
 var Company = require('./app/models/company');
 var User = require('./app/models/user');
+var Resume = require('./app/models/resume');
 
 //ROUTES FOR API CALLS
 
@@ -163,6 +164,33 @@ router.route('/companies/:company_id/tags')
 			});
 			
 		});
+	});
+	
+router.route('/resumes')
+
+	.get(function(req, res) {
+		
+		Resume.find(function(err, resumes) {
+			if(err)
+				res.send(err);
+			
+			res.json(resumes);
+		});
+	})
+	
+	.post(function(req, res) {
+		
+		var resume = new Resume();
+		resume.email = req.body.email;
+		resume.tag = req.body.tag;
+		
+		resume.save(function(err) {
+			if(err)
+				res.send(err);
+			res.json({ message: 'Resume submitted!' });
+		});
+		
+		
 	});
 	
 router.route('/users')
