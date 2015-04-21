@@ -10,7 +10,9 @@ var Schema = mongoose.Schema;
 
 var ResumeSchema = new Schema({
 	email: 		String,
-	tag:		String
+	tag:		String,
+	path:       String,
+	uploadDate: {type: Date, default: Date.now}
 });
 
 module.exports = mongoose.model('Resume', ResumeSchema);

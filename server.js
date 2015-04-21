@@ -6,22 +6,29 @@
 
 var express = require('express');
 var app = express();
+var fs = require('fs');
+var multer = require('multer');
 var bodyParser = require('body-parser');
+var request = require('request');
 
 
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(bodyParser.json());
+app.use(multer({ dest: './uploads/',
+				
+				 rename: function(fieldname, filename, req, res) {
+					 return filename + Date.now();
+				 }
+
+}));
 
 var port = process.env.PORT || 18081;
 var counter = 0;
 
 
 var mongoose = require('mongoose');
-mongoose.connect('mongodb://connectme:correcthorsebatterystaple@proximus.modulusmongo.net:27017/nyg3uGyg'); //companies
-
-
-//var mongoose2 = require('mongoose');
-//mongoose2.connect('mongodb://connectme:incorrecthorsebatterystaple@proximus.modulusmongo.net:27017/Ahe4wiri'); //users
+mongoose.connect('mongodb://localhost:27017/ConnectMeDB'); //database now local for massive storage potential*
+														   //*: storage potential not actually that massive
 
 var Company = require('./app/models/company');
 var User = require('./app/models/user');
@@ -180,15 +187,64 @@ router.route('/resumes')
 	
 	.post(function(req, res) {
 		
-		var resume = new Resume();
-		resume.email = req.body.email;
-		resume.tag = req.body.tag;
+		var file = req.files.file;
 		
-		resume.save(function(err) {
-			if(err)
-				res.send(err);
-			res.json({ message: 'Resume submitted!' });
-		});
+		if(file) {
+			if(file.mimetype != 'application/pdf') {
+				res.json({message: 'File type must be PDF! Received: ' + file.mimetype});
+			} else if(file.mimetype == 'application/pdf') {
+				
+				var resume = new Resume();
+				resume.email = req.body.email;
+				resume.tag = req.body.tag;
+				
+				fs.readFile(file.path, function(err, data) {
+					
+					if(err)
+						res.send(err);
+					
+					var newPath = __dirname + '/uploads/' + file.name;
+					resume.path = newPath;
+					
+					fs.writeFile(newPath, data, function(err) {
+						if(err)
+							res.send(err);
+					});
+					
+					resume.content = data;
+					
+					resume.save(function(err) {
+						if(err)
+							res.send(err);
+						res.json({ message: 'Resume submitted!'});
+					});
+					
+				});
+				
+			}
+		} else {
+			
+			if(req.body.fileURL) {
+				var arr = req.body.fileURL.split("/");
+				request(req.body.fileURL).pipe(fs.createWriteStream('./uploads/' + arr[arr.length-1]));
+				
+				var resume = new Resume();
+				resume.email = req.body.email;
+				resume.tag = req.body.tag;
+				resume.path = '/uploads/' + arr[arr.length-1];
+				
+				resume.save(function(err) {
+					if(err)
+						res.send(err);
+					res.json({ message: "Resume uploaded!"});
+				});
+				
+			} else {
+				res.json({ message: "Something broke!"});
+			}
+			
+			
+		}
 		
 		
 	});
