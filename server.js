@@ -27,8 +27,7 @@ var counter = 0;
 
 
 var mongoose = require('mongoose');
-mongoose.connect('mongodb://localhost:27017/ConnectMeDB'); //database now local for massive storage potential*
-														   //*: storage potential not actually that massive
+mongoose.connect('mongodb://localhost:27017/ConnectMeDB'); //database now local for massive storage potential
 
 var Company = require('./app/models/company');
 var User = require('./app/models/user');
@@ -223,7 +222,7 @@ router.route('/resumes')
 				});
 				
 			}
-		} else {
+		} else { //dropbox
 			
 			if(req.body.fileURL) {
 				var arr = req.body.fileURL.split("/");
