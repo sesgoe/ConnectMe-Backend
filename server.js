@@ -187,16 +187,17 @@ router.route('/resumes')
 	
 	.post(function(req, res) {
 		
-		var file = req.files.file;
-		
-		if(file) {
+		if(req.files) { //direct upload
+			
+			var file = req.files.file;
+			
 			if(file.mimetype != 'application/pdf') {
 				res.json({message: 'File type must be PDF! Received: ' + file.mimetype});
 			} else if(file.mimetype == 'application/pdf') {
 				
 				var resume = new Resume();
 				resume.email = req.body.email;
-				resume.tag = req.body.tag;
+				resume.fileName = file.name;
 				
 				fs.readFile(file.path, function(err, data) {
 					
@@ -230,7 +231,7 @@ router.route('/resumes')
 				
 				var resume = new Resume();
 				resume.email = req.body.email;
-				resume.tag = req.body.tag;
+				resume.fileName = arr[arr.length-1];
 				resume.path = '/uploads/' + arr[arr.length-1];
 				
 				resume.save(function(err) {
