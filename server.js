@@ -10,6 +10,8 @@ var fs = require('fs');
 var multer = require('multer');
 var bodyParser = require('body-parser');
 var request = require('request');
+var pathP = require('path');
+var mime = require('mime');
 
 
 app.use(bodyParser.urlencoded({ extended: true }));
@@ -17,7 +19,7 @@ app.use(bodyParser.json());
 app.use(multer({ dest: './uploads/',
 				
 				 rename: function(fieldname, filename, req, res) {
-					 return filename + Date.now();
+					 return filename;
 				 }
 
 }));
@@ -27,11 +29,13 @@ var counter = 0;
 
 
 var mongoose = require('mongoose');
-mongoose.connect('mongodb://localhost:27017/ConnectMeDB'); //database now local for massive storage potential
+mongoose.connect('mongodb://localhost:27017/ConnectMeDB'); //database now local for massive storage potential*
+														   //*: storage potential not actually that massive
 
 var Company = require('./app/models/company');
 var User = require('./app/models/user');
 var Resume = require('./app/models/resume');
+var Sent = require('./app/models/sent');
 
 //ROUTES FOR API CALLS
 
@@ -186,7 +190,27 @@ router.route('/resumes')
 	
 	.post(function(req, res) {
 		
-		if(req.files) { //direct upload
+		
+		if(req.body.fileURL) {
+			var arr = req.body.fileURL.split("/");
+			request(req.body.fileURL).pipe(fs.createWriteStream('./uploads/' + arr[arr.length-1]));
+			
+			console.log('request body: ' + req.body);
+			
+			var resume = new Resume();
+			resume.email = req.body.email;
+			resume.fileName = arr[arr.length-1];
+			resume.path = '/uploads/' + arr[arr.length-1];
+			
+			resume.save(function(err) {
+				if(err)
+					res.send(err);
+				res.json({ message: "Resume uploaded!"});
+			});
+			
+			console.log('resume uploaded!');
+				
+		} else {
 			
 			var file = req.files.file;
 			
@@ -194,59 +218,84 @@ router.route('/resumes')
 				res.json({message: 'File type must be PDF! Received: ' + file.mimetype});
 			} else if(file.mimetype == 'application/pdf') {
 				
+				
 				var resume = new Resume();
 				resume.email = req.body.email;
 				resume.fileName = file.name;
+				
+				var newPath = '/uploads/' + file.name;
+				resume.path = newPath;
+				
+				resume.save(function(err) {
+					if(err)
+						res.send(err);
+					res.json({ message: 'Resume submitted!'});
+				});
 				
 				fs.readFile(file.path, function(err, data) {
 					
 					if(err)
 						res.send(err);
 					
-					var newPath = __dirname + '/uploads/' + file.name;
-					resume.path = newPath;
-					
 					fs.writeFile(newPath, data, function(err) {
 						if(err)
 							res.send(err);
 					});
 					
-					resume.content = data;
-					
-					resume.save(function(err) {
-						if(err)
-							res.send(err);
-						res.json({ message: 'Resume submitted!'});
-					});
-					
 				});
 				
 			}
-		} else { //dropbox
-			
-			if(req.body.fileURL) {
-				var arr = req.body.fileURL.split("/");
-				request(req.body.fileURL).pipe(fs.createWriteStream('./uploads/' + arr[arr.length-1]));
-				
-				var resume = new Resume();
-				resume.email = req.body.email;
-				resume.fileName = arr[arr.length-1];
-				resume.path = '/uploads/' + arr[arr.length-1];
-				
-				resume.save(function(err) {
-					if(err)
-						res.send(err);
-					res.json({ message: "Resume uploaded!"});
-				});
-				
-			} else {
-				res.json({ message: "Something broke!"});
-			}
-			
 			
 		}
 		
 		
+	});
+	
+router.route('/resumes/:resume_id')
+
+	.get(function(req, res) {
+        Resume.findById(req.params.resume_id, function(err, resume) {
+            if (err)
+                res.send(err);
+			
+			var file = __dirname + '/uploads/' + resume.fileName;
+			
+			var filename = pathP.basename(file);
+			var mimetype = mime.lookup(file);
+			
+			res.setHeader('Content-disposition', 'attachment; filename=' + filename);
+			res.setHeader('Content-type', mimetype);
+			
+			var filestream = fs.createReadStream(file);
+			filestream.pipe(res);
+			
+        });
+    });
+
+router.route('/sent')
+
+	.get(function(req, res) {
+		
+		Sent.find(function(err, sents) {
+			if(err)
+				res.send(err);
+			
+			res.json(sents);
+		});
+	})
+	
+	.post(function(req, res) {
+		
+		var sent = new Sent();
+		sent.fileName = req.body.fileName;
+		sent.tag = req.body.tag;
+		
+		sent.save(function(err) {
+			if(err)
+				res.send(err);
+			
+			res.json({ message: 'Sent created!' });
+		});
 	});
 	
 router.route('/users')
